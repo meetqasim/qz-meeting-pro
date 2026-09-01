@@ -1,30 +1,32 @@
 const { app, BrowserWindow } = require('electron');
-
-// Replace this URL once your Render backend is live
-const CLOUD_URL = 'https://qz-meeting-pro.onrender.com';
+const path = require('path');
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 720,
+        width: 1200,
+        height: 800,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false,
-            webSecurity: false
+            contextIsolation: false
         }
     });
 
-    mainWindow.loadURL(CLOUD_URL);
-    mainWindow.setMenuBarVisibility(false);
+    // Correctly loads index.html from the public folder
+    mainWindow.loadFile(path.join(__dirname, 'public', 'index.html'));
 }
 
 app.whenReady().then(() => {
     createWindow();
+
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
     });
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
