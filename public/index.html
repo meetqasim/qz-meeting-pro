@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Qz Meeting Pro</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #0b0f19; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; background: #111827; }
+        .login-box { display: flex; flex-direction: column; gap: 15px; width: 300px; }
+        input, button { padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: #fff; }
+        button { background: #3b82f6; cursor: pointer; font-weight: bold; }
+        #room-screen { display: none; height: 100vh; flex-direction: column; }
+        .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 20px; }
+        video { width: 100%; height: 100%; object-fit: cover; background: #000; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Qz Meeting Pro</h2>
+            <input type="text" id="username" placeholder="Your Name">
+            <input type="text" id="room" placeholder="Room ID">
+            <button onclick="join()">Join</button>
+        </div>
+    </div>
+
+    <div id="room-screen">
+        <div class="video-grid" id="grid">
+            <div class="video-box"><video id="local" autoplay muted playsinline></video></div>
+        </div>
+    </div>
+
+    <script src="https://qz-meeting-pro.onrender.com/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('https://qz-meeting-pro.onrender.com');
+        let stream, myName, myRoom, peers = {};
+
+        async function join() {
+            myName = document.getElementById('username').value;
+            myRoom = document.getElementById('room').value;
+            if(!myName || !myRoom) return alert('Fill fields');
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('room-screen').style.display = 'flex';
+
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local').srcObject = stream;
+
+            socket.emit('join-room', myRoom, myName);
+
+            socket.on('user-connected', data => createPeer(data.userId, true, data.username));
+            socket.on('offer', async data => {
+                const pc = createPeer(data.sender, false, data.username);
+                await pc.setRemoteDescription(data.offer);
+                const ans = await pc.createAnswer();
+                await pc.setLocalDescription(ans);
+                socket.emit('answer', { answer: ans, target: data.sender });
+            });
+            socket.on('answer', data => peers[data.sender]?.pc.setRemoteDescription(data.answer));
+            socket.on('ice-candidate', data => peers[data.sender]?.pc.addIceCandidate(data.candidate));
+            socket.on('user-disconnected', data => {
+                peers[data.userId]?.pc.close();
+                document.getElementById(`box-${data.userId}`)?.remove();
+            });
+        }
+
+        function createPeer(id, initiator, name) {
+            const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+            peers[id] = { pc };
+            stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+            pc.onicecandidate = e => { if(e.candidate) socket.emit('ice-candidate', { candidate: e.candidate, target: id }); };
+            pc.ontrack = e => {
+                if(!document.getElementById(`box-${id}`)) {
+                    const div = document.createElement('div');
+                    div.id = `box-${id}`;
+                    div.innerHTML = `<video autoplay playsinline></video>`;
+                    div.querySelector('video').srcObject = e.streams[0];
+                    document.getElementById('grid').appendChild(div);
+                }
+            };
+
+            if(initiator) {
+                pc.createOffer().then(offer => {
+                    pc.setLocalDescription(offer);
+                    socket.emit('offer', { offer, target: id, username: myName });
+                });
+            }
+            return pc;
+        }
+    </script>
+</body>
+</html>

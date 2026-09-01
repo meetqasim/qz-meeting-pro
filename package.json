@@ -1,0 +1,25 @@
+{
+  "name": "qz-meeting-pro",
+  "version": "1.0.0",
+  "description": "Cloud-based Video Conferencing App",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.qz.meetingpro",
+    "productName": "Qz Meeting Pro",
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis" },
+    "files": ["main.js", "server.js", "public/**/*", "package.json"]
+  }
+}
