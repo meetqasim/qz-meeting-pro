@@ -18,8 +18,17 @@
   "build": {
     "appId": "com.qz.meetingpro",
     "productName": "Qz Meeting Pro",
-    "directories": { "output": "dist" },
-    "win": { "target": "nsis" },
-    "files": ["main.js", "server.js", "public/**/*", "package.json"]
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "public/**/*",
+      "package.json"
+    ]
   }
 }
